@@ -1,0 +1,605 @@
+{
+  "schema_version": 1,
+  "researched_on": "2026-10-20",
+  "note": "Deployment classification and source inventory, not a tested-platform certification. Versions, regions, editions, quotas and privileges are service-specific. Other supports arbitrary Oracle Net endpoints.",
+  "platforms": [
+    {
+      "key": "oci-base",
+      "label": "OCI Base Database Service",
+      "family": "base",
+      "provider": "oci",
+      "aliases": [
+        "basedb",
+        "dbcs"
+      ],
+      "notes": "General-purpose managed DB systems; versions and RAC availability depend on shape and edition.",
+      "sources": [
+        {
+          "title": "Oracle Base Database Service",
+          "url": "https://docs.oracle.com/en/cloud/paas/base-database/about/"
+        },
+        {
+          "title": "Base Database DB systems and versions",
+          "url": "https://docs.oracle.com/en/cloud/paas/base-database/about-dbs/"
+        }
+      ]
+    },
+    {
+      "key": "oci-exadata-dedicated",
+      "label": "OCI Exadata Database Service on Dedicated Infrastructure",
+      "family": "exadata-dedicated",
+      "provider": "oci",
+      "aliases": [
+        "exacs",
+        "exadb-d"
+      ],
+      "notes": "Dedicated Exadata service; record hardware generation and ASM or Exascale storage architecture.",
+      "sources": [
+        {
+          "title": "Oracle Exadata Database Service FAQ",
+          "url": "https://www.oracle.com/engineered-systems/exadata/database-service/faq/"
+        }
+      ]
+    },
+    {
+      "key": "oci-exadata-exascale",
+      "label": "OCI Exadata Database Service on Exascale Infrastructure",
+      "family": "exadata-exascale",
+      "provider": "oci",
+      "aliases": [
+        "exadb-xs"
+      ],
+      "notes": "Shared Exascale infrastructure; service currently documents 19c and 26ai.",
+      "sources": [
+        {
+          "title": "Exadata Database Service on Exascale: release notes",
+          "url": "https://docs.oracle.com/en/engineered-systems/exadata-database-exascale/exdxs/exa-whats-new.html"
+        }
+      ]
+    },
+    {
+      "key": "oci-autonomous-serverless",
+      "label": "OCI Autonomous AI Database Serverless",
+      "family": "autonomous-serverless",
+      "provider": "oci",
+      "aliases": [
+        "adb-s",
+        "adbs"
+      ],
+      "notes": "Use a database service with SQL*Net access; record service name, tier, ECPUs and autoscaling.",
+      "sources": [
+        {
+          "title": "Provision Autonomous AI Database Serverless",
+          "url": "https://docs.oracle.com/en-us/iaas/autonomous-database-serverless/doc/autonomous-provision.html"
+        }
+      ]
+    },
+    {
+      "key": "oci-autonomous-dedicated",
+      "label": "OCI Autonomous AI Database on Dedicated Exadata Infrastructure",
+      "family": "autonomous-dedicated",
+      "provider": "oci",
+      "aliases": [
+        "adb-d",
+        "adbd"
+      ],
+      "notes": "Managed database on dedicated Exadata; version follows its parent Autonomous Container Database.",
+      "sources": [
+        {
+          "title": "Autonomous Dedicated database features",
+          "url": "https://docs.oracle.com/en/cloud/paas/autonomous-database/dedicated/adbaa/oracle-database-features-in-autonomous-ai-database-on.html"
+        }
+      ]
+    },
+    {
+      "key": "oci-compute",
+      "label": "Self-managed Oracle Database on OCI Compute",
+      "family": "self-managed",
+      "provider": "oci",
+      "aliases": [],
+      "notes": "Oracle Database installed on OCI virtual machines or bare metal; validate OS, CPU architecture and release.",
+      "sources": [
+        {
+          "title": "Oracle cloud deployment choices",
+          "url": "https://blogs.oracle.com/database/oracle-ai-database-private-agent-factory-enterprise-faq"
+        }
+      ]
+    },
+    {
+      "key": "exadata-cloud-at-customer",
+      "label": "Exadata Database Service on Cloud@Customer",
+      "family": "exadata-dedicated",
+      "provider": "oci-hybrid",
+      "aliases": [
+        "exacc",
+        "exadb-cc"
+      ],
+      "notes": "Exadata cloud service installed at customer location; record storage architecture and control-plane realm.",
+      "sources": [
+        {
+          "title": "Oracle Exadata Database Service FAQ",
+          "url": "https://www.oracle.com/engineered-systems/exadata/database-service/faq/"
+        }
+      ]
+    },
+    {
+      "key": "autonomous-cloud-at-customer",
+      "label": "Autonomous AI Database on Exadata Cloud@Customer",
+      "family": "autonomous-dedicated",
+      "provider": "oci-hybrid",
+      "aliases": [
+        "adb-cc"
+      ],
+      "notes": "Autonomous service at customer location; managed database privileges and resource controls apply.",
+      "sources": [
+        {
+          "title": "Autonomous Dedicated database features",
+          "url": "https://docs.oracle.com/en/cloud/paas/autonomous-database/dedicated/adbaa/oracle-database-features-in-autonomous-ai-database-on.html"
+        },
+        {
+          "title": "Oracle distributed cloud deployment models",
+          "url": "https://www.oracle.com/cloud/distributed-cloud/solutions/"
+        }
+      ]
+    },
+    {
+      "key": "compute-cloud-at-customer",
+      "label": "Self-managed Oracle Database on Compute Cloud@Customer",
+      "family": "self-managed",
+      "provider": "oci-hybrid",
+      "aliases": [],
+      "notes": "Use for an independently installed Oracle database on Compute Cloud@Customer; this is not Base Database Service.",
+      "sources": [
+        {
+          "title": "Oracle Compute Cloud@Customer",
+          "url": "https://www.oracle.com/cloud/compute/cloud-at-customer/"
+        }
+      ]
+    },
+    {
+      "key": "oracle-aws-exadata",
+      "label": "Oracle AI Database@AWS — Exadata Dedicated",
+      "family": "exadata-dedicated",
+      "provider": "aws",
+      "aliases": [],
+      "notes": "Oracle-operated service in AWS; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@AWS available services and versions",
+          "url": "https://docs.oracle.com/en-us/iaas/Content/database-at-aws/oaaws.htm"
+        },
+        {
+          "title": "Oracle Database@AWS getting started and regions",
+          "url": "https://docs.aws.amazon.com/odb/latest/UserGuide/getting-started.html"
+        }
+      ]
+    },
+    {
+      "key": "oracle-aws-exascale",
+      "label": "Oracle AI Database@AWS — Exadata Exascale",
+      "family": "exadata-exascale",
+      "provider": "aws",
+      "aliases": [],
+      "notes": "Oracle-operated service in AWS; service-specific region, zone and software availability must be checked. Generally available since August 2026.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@AWS available services and versions",
+          "url": "https://docs.oracle.com/en-us/iaas/Content/database-at-aws/oaaws.htm"
+        },
+        {
+          "title": "Oracle Database@AWS getting started and regions",
+          "url": "https://docs.aws.amazon.com/odb/latest/UserGuide/getting-started.html"
+        }
+      ]
+    },
+    {
+      "key": "oracle-aws-autonomous-dedicated",
+      "label": "Oracle AI Database@AWS — Autonomous Dedicated",
+      "family": "autonomous-dedicated",
+      "provider": "aws",
+      "aliases": [],
+      "notes": "Oracle-operated service in AWS; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@AWS available services and versions",
+          "url": "https://docs.oracle.com/en-us/iaas/Content/database-at-aws/oaaws.htm"
+        },
+        {
+          "title": "Oracle Database@AWS getting started and regions",
+          "url": "https://docs.aws.amazon.com/odb/latest/UserGuide/getting-started.html"
+        }
+      ]
+    },
+    {
+      "key": "oracle-aws-autonomous-serverless",
+      "label": "Oracle AI Database@AWS — Autonomous Serverless",
+      "family": "autonomous-serverless",
+      "provider": "aws",
+      "aliases": [],
+      "notes": "Oracle-operated service in AWS; service-specific region, zone and software availability must be checked. Current AWS table lists only Northern Virginia and Oregon for this service.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@AWS available services and versions",
+          "url": "https://docs.oracle.com/en-us/iaas/Content/database-at-aws/oaaws.htm"
+        },
+        {
+          "title": "Oracle Database@AWS getting started and regions",
+          "url": "https://docs.aws.amazon.com/odb/latest/UserGuide/getting-started.html"
+        }
+      ]
+    },
+    {
+      "key": "oracle-azure-base",
+      "label": "Oracle AI Database@Azure — Base Database Service",
+      "family": "base",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Oracle-operated service in Azure; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@Azure FAQ",
+          "url": "https://www.oracle.com/cloud/azure/oracle-database-at-azure/faq/"
+        },
+        {
+          "title": "Oracle AI Database@Azure regional service matrix",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-regions"
+        }
+      ]
+    },
+    {
+      "key": "oracle-azure-exadata",
+      "label": "Oracle AI Database@Azure — Exadata Dedicated",
+      "family": "exadata-dedicated",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Oracle-operated service in Azure; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@Azure FAQ",
+          "url": "https://www.oracle.com/cloud/azure/oracle-database-at-azure/faq/"
+        },
+        {
+          "title": "Oracle AI Database@Azure regional service matrix",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-regions"
+        }
+      ]
+    },
+    {
+      "key": "oracle-azure-exascale",
+      "label": "Oracle AI Database@Azure — Exadata Exascale",
+      "family": "exadata-exascale",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Oracle-operated service in Azure; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@Azure FAQ",
+          "url": "https://www.oracle.com/cloud/azure/oracle-database-at-azure/faq/"
+        },
+        {
+          "title": "Oracle AI Database@Azure regional service matrix",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-regions"
+        }
+      ]
+    },
+    {
+      "key": "oracle-azure-autonomous-dedicated",
+      "label": "Oracle AI Database@Azure — Autonomous Dedicated",
+      "family": "autonomous-dedicated",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Oracle-operated service in Azure; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@Azure FAQ",
+          "url": "https://www.oracle.com/cloud/azure/oracle-database-at-azure/faq/"
+        },
+        {
+          "title": "Oracle AI Database@Azure regional service matrix",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-regions"
+        }
+      ]
+    },
+    {
+      "key": "oracle-azure-autonomous-serverless",
+      "label": "Oracle AI Database@Azure — Autonomous Serverless",
+      "family": "autonomous-serverless",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Oracle-operated service in Azure; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle AI Database@Azure FAQ",
+          "url": "https://www.oracle.com/cloud/azure/oracle-database-at-azure/faq/"
+        },
+        {
+          "title": "Oracle AI Database@Azure regional service matrix",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-db/oracle-database-regions"
+        }
+      ]
+    },
+    {
+      "key": "oracle-gcp-base",
+      "label": "Oracle AI Database@Google Cloud — Base Database Service",
+      "family": "base",
+      "provider": "gcp",
+      "aliases": [],
+      "notes": "Oracle-operated service in Google Cloud; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle Database@Google Cloud overview",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/overview"
+        },
+        {
+          "title": "Oracle Database@Google Cloud regions and zones",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/regions-and-zones"
+        }
+      ]
+    },
+    {
+      "key": "oracle-gcp-exadata",
+      "label": "Oracle AI Database@Google Cloud — Exadata Dedicated",
+      "family": "exadata-dedicated",
+      "provider": "gcp",
+      "aliases": [],
+      "notes": "Oracle-operated service in Google Cloud; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle Database@Google Cloud overview",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/overview"
+        },
+        {
+          "title": "Oracle Database@Google Cloud regions and zones",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/regions-and-zones"
+        }
+      ]
+    },
+    {
+      "key": "oracle-gcp-exascale",
+      "label": "Oracle AI Database@Google Cloud — Exadata Exascale",
+      "family": "exadata-exascale",
+      "provider": "gcp",
+      "aliases": [],
+      "notes": "Oracle-operated service in Google Cloud; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle Database@Google Cloud overview",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/overview"
+        },
+        {
+          "title": "Oracle Database@Google Cloud regions and zones",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/regions-and-zones"
+        }
+      ]
+    },
+    {
+      "key": "oracle-gcp-autonomous-serverless",
+      "label": "Oracle AI Database@Google Cloud — Autonomous Serverless",
+      "family": "autonomous-serverless",
+      "provider": "gcp",
+      "aliases": [],
+      "notes": "Oracle-operated service in Google Cloud; service-specific region, zone and software availability must be checked.",
+      "sources": [
+        {
+          "title": "Oracle Database@Google Cloud overview",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/overview"
+        },
+        {
+          "title": "Oracle Database@Google Cloud regions and zones",
+          "url": "https://docs.cloud.google.com/oracle/database/docs/regions-and-zones"
+        }
+      ]
+    },
+    {
+      "key": "aws-rds",
+      "label": "Amazon RDS for Oracle",
+      "family": "managed-oracle",
+      "provider": "aws",
+      "aliases": [
+        "rds"
+      ],
+      "notes": "Current AWS guide lists 19c, 21c and 26ai; 12c is no longer supported. No SYSDBA or host access.",
+      "sources": [
+        {
+          "title": "Amazon RDS for Oracle",
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Oracle.html"
+        }
+      ]
+    },
+    {
+      "key": "aws-rds-custom",
+      "label": "Amazon RDS Custom for Oracle",
+      "family": "managed-oracle",
+      "provider": "aws",
+      "aliases": [
+        "rds-custom"
+      ],
+      "notes": "Existing/custom managed deployment. AWS announces end of support on 2027-03-31; check engine and region availability.",
+      "sources": [
+        {
+          "title": "RDS Custom for Oracle and retirement notice",
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/working-with-custom-oracle.html"
+        }
+      ]
+    },
+    {
+      "key": "aws-ec2",
+      "label": "Self-managed Oracle Database on Amazon EC2",
+      "family": "self-managed",
+      "provider": "aws",
+      "aliases": [
+        "ec2"
+      ],
+      "notes": "Customer-managed database on EC2; release, operating-system and storage support are separate from BALIO compatibility.",
+      "sources": [
+        {
+          "title": "Oracle Database migration to Amazon EC2",
+          "url": "https://docs.aws.amazon.com/en_us/prescriptive-guidance/latest/patterns/migrate-an-on-premises-oracle-database-to-oracle-on-amazon-ec2.html"
+        }
+      ]
+    },
+    {
+      "key": "azure-vm",
+      "label": "Self-managed Oracle Database on Azure VMs",
+      "family": "self-managed",
+      "provider": "azure",
+      "aliases": [],
+      "notes": "Customer-managed or partner-managed database on Azure virtual machines.",
+      "sources": [
+        {
+          "title": "Oracle on Azure VMs",
+          "url": "https://learn.microsoft.com/en-us/azure/oracle/oracle-azure-overview"
+        }
+      ]
+    },
+    {
+      "key": "gcp-compute",
+      "label": "Self-managed Oracle Database on Google Cloud Compute",
+      "family": "self-managed",
+      "provider": "gcp",
+      "aliases": [
+        "gcp-vm"
+      ],
+      "notes": "Current Google planning guide lists 19c and 23ai; verify exact release and machine-series eligibility.",
+      "sources": [
+        {
+          "title": "Plan for Oracle on Google Cloud Compute",
+          "url": "https://docs.cloud.google.com/oracle/compute/plan-for-oracle-on-compute"
+        }
+      ]
+    },
+    {
+      "key": "gcp-bare-metal",
+      "label": "Oracle Database on Google Cloud Bare Metal Solution",
+      "family": "self-managed",
+      "provider": "gcp",
+      "aliases": [
+        "gcp-bms"
+      ],
+      "notes": "Database managed by customer on dedicated bare metal; distinct from Oracle Database@Google Cloud.",
+      "sources": [
+        {
+          "title": "Google Cloud Bare Metal Solution",
+          "url": "https://cloud.google.com/bare-metal"
+        }
+      ]
+    },
+    {
+      "key": "ibm-power",
+      "label": "Oracle Database on IBM Power Virtual Server",
+      "family": "self-managed",
+      "provider": "ibm",
+      "aliases": [
+        "powervs"
+      ],
+      "notes": "Oracle on AIX and PowerVM. A Linux BALIO client can connect remotely; confirm the specific database release on AIX.",
+      "sources": [
+        {
+          "title": "Oracle workloads on IBM Power Virtual Server",
+          "url": "https://cloud.ibm.com/docs/power-iaas?topic=power-iaas-use-case-oracle"
+        }
+      ]
+    },
+    {
+      "key": "ibm-bare-metal",
+      "label": "Oracle Database on IBM Cloud Bare Metal",
+      "family": "self-managed",
+      "provider": "ibm",
+      "aliases": [],
+      "notes": "Customer-managed Oracle on dedicated bare metal; verify current hardware, OS and Oracle certification.",
+      "sources": [
+        {
+          "title": "Oracle on IBM Cloud Bare Metal case study",
+          "url": "https://www.ibm.com/case-studies/geva-group"
+        }
+      ]
+    },
+    {
+      "key": "alibaba-ecs",
+      "label": "Self-managed Oracle Database on Alibaba Cloud ECS",
+      "family": "self-managed",
+      "provider": "alibaba",
+      "aliases": [],
+      "notes": "Oracle installed on ECS; provider documents ECS-hosted Oracle backup. This is not a managed Oracle RDS service.",
+      "sources": [
+        {
+          "title": "Oracle databases on Alibaba ECS and on-premises",
+          "url": "https://www.alibabacloud.com/help/en/cloud-backup/user-guide/back-up-an-oracle-database"
+        }
+      ]
+    },
+    {
+      "key": "onprem-exadata",
+      "label": "On-premises Oracle Exadata Database Machine",
+      "family": "exadata-dedicated",
+      "provider": "onprem",
+      "aliases": [
+        "exadata"
+      ],
+      "notes": "Use for customer-operated Exadata; record generation, database/grid/cell software, RAC and storage configuration.",
+      "sources": [
+        {
+          "title": "Oracle AI Database documentation and platform availability",
+          "url": "https://docs.oracle.com/en/database/oracle/oracle-database/index.html"
+        }
+      ]
+    },
+    {
+      "key": "onprem-exascale",
+      "label": "On-premises Exadata using Exascale storage",
+      "family": "exadata-exascale",
+      "provider": "onprem",
+      "aliases": [
+        "exascale"
+      ],
+      "notes": "Exascale is an Exadata storage architecture, not a generic SAN product. Software and hardware minimums apply.",
+      "sources": [
+        {
+          "title": "Exascale storage deployment models",
+          "url": "https://blogs.oracle.com/database/exascale-oracle-database-storage-in-the-age-of-the-cloud"
+        }
+      ]
+    },
+    {
+      "key": "onprem-oda",
+      "label": "On-premises Oracle Database Appliance",
+      "family": "appliance",
+      "provider": "onprem",
+      "aliases": [
+        "oda"
+      ],
+      "notes": "Appliance release and hardware model constrain database releases; 26ai availability is documented.",
+      "sources": [
+        {
+          "title": "Oracle Database Appliance documentation",
+          "url": "https://www.oracle.com/goto/oda/docs"
+        }
+      ]
+    },
+    {
+      "key": "onprem-server",
+      "label": "Oracle Database on on-premises physical or virtual servers",
+      "family": "self-managed",
+      "provider": "onprem",
+      "aliases": [
+        "onprem"
+      ],
+      "notes": "Includes supported Linux, Windows, AIX or other database-server OS and hypervisors; the BALIO driver host is Linux.",
+      "sources": [
+        {
+          "title": "Oracle AI Database documentation and platform availability",
+          "url": "https://docs.oracle.com/en/database/oracle/oracle-database/index.html"
+        }
+      ]
+    },
+    {
+      "key": "other",
+      "label": "Other Oracle Database deployment",
+      "family": "other",
+      "provider": "other",
+      "aliases": [],
+      "notes": "Generic Oracle Net endpoint for private, hosted, partner, container, VMware, distributed or new deployments; annotate topology and validate capabilities. No provider certification is implied.",
+      "sources": []
+    }
+  ]
+}
