@@ -1,12 +1,29 @@
 # BALIO
 
-**Balanced Logical and physical I/O for Oracle** — a Linux CLI for driving an Oracle database remotely through Oracle Net and Instant Client.
+**Balanced Logical and physical I/O for Oracle**
 
-BALIO is an independent, original implementation inspired by SLOB's focus on database I/O. It uses indexed point reads and small updates, two working sets, server-side PL/SQL batches, concurrent sessions, and measured feedback. No SLOB code is incorporated. The name is a working project name, not a trademark clearance or Oracle endorsement.
+A Linux command-line benchmark for generating logical and physical I/O pressure on a remote Oracle database. BALIO runs indexed point reads and small updates through Oracle Net and Instant Client. The database server executes the workload; the client host controls concurrency and collects results.
 
-**Status: version 0.2.0, implementation and offline tests available. No live Oracle database was available for validation.** The SQL compatibility target is Oracle **12.1/12.2, 18c, 19c, 21c, 23ai and 26ai**. This is not yet a claim of tested or certified compatibility. Service availability and supported database versions differ by provider.
+BALIO is an independent implementation inspired by SLOB's focus on database I/O. No SLOB code is incorporated. The name is a working project name and does not imply Oracle endorsement.
 
-## What BALIO does
+> **Development status — v0.2.0:** implementation and offline tests are available. Live Oracle validation is still required. The SQL compatibility target is **12.1, 12.2, 18c, 19c, 21c, 23ai and 26ai**; these are not yet tested or certified compatibility claims. See [validation status](docs/validation.md).
+
+## Contents
+
+- [Features](#features)
+- [Install on Linux](#install-on-linux)
+- [Oracle accounts and credentials](#oracle-accounts-and-credentials)
+- [Quick start](#quick-start)
+- [Size the dataset](#size-the-dataset)
+- [Workload profiles and controls](#workload-profiles-and-controls)
+- [Client concurrency](#client-concurrency)
+- [AWR reports](#awr-reports)
+- [Metrics and permissions](#metrics-and-permissions)
+- [Autonomous, RAC and release considerations](#autonomous-rac-and-release-considerations)
+- [Results and verification](#results-and-verification)
+- [Documentation](#documentation)
+
+## Features
 
 - Remotely creates a dedicated benchmark user if an authorized administrative connection is supplied, then deploys its tables and package into that user.
 - Seeds deterministic varied row payloads using array-bound inserts; interrupted seeding resumes from committed progress with the same dimensions.
@@ -23,7 +40,7 @@ Read the [deployment catalogue](docs/deployments.md) for the source-backed inven
 
 For the implementation comparison, read [BALIO versus SLOB](docs/slob-comparison.md). SLOB already offers remote clients, concurrency, hot spots and AWR reports. BALIO adds a measured-ratio feedback workflow, but its maturity, workload layout and overhead differ; there is no claim of proven performance superiority.
 
-## Install on a Linux client host
+## Install on Linux
 
 Use a 64-bit Python **3.10–3.14** environment and a matching Oracle Instant Client Basic/Basic Light installation for your OS and architecture. The project pins `python-oracledb==3.4.2` for a reproducible starting point that includes older releases in its documented test matrix. Validate any driver upgrade before comparing results.
 
@@ -45,19 +62,92 @@ balio platforms
 
 Instant Client binaries and required OS packages such as the matching libaio package are not bundled. Install them using Oracle's instructions for the selected Linux distribution. On Linux, `--lib-dir` is deliberately rejected: use the dynamic loader configuration or `LD_LIBRARY_PATH`. The CLI defaults to **Thick** mode. `--mode thin` is available for compatible connections that do not need Instant Client; run it in a separate process.
 
-## Connect and check capabilities
+## Oracle accounts and credentials
+
+BALIO uses **Oracle database accounts**. These are not Linux users, OCI console users, or wallet passwords.
+
+| Purpose | Which Oracle account to use | Where to enter the username | Where to enter its password |
+| :--- | :--- | :--- | :--- |
+| Deploy, seed and run the workload | A dedicated benchmark schema, such as `BALIO` | `BALIO_USER` or `--user` | Hidden prompt, or the exported variable `BALIO_PASSWORD` |
+| Create the benchmark schema, if needed | An existing administrator authorized to create users and grant privileges | `provision --user YOUR_ADMIN_USER` | Hidden prompt, or a variable selected with `--password-env`, such as `BALIO_ADMIN_PASSWORD` |
+| Set the new benchmark schema's password | The new user named by `provision --schema BALIO` | `--schema` | Hidden prompt, or `BALIO_SCHEMA_PASSWORD` selected by `--schema-password-env` |
+| Collect AWR reports | An existing account authorized for AWR on the target database, such as a DBA-provided reporting account | `run --awr-user YOUR_REPORTING_USER` | Hidden prompt, or `BALIO_AWR_PASSWORD` |
+
+**`BALIO_AWR_PASSWORD` must contain the database password of the user passed to `--awr-user`.** For example, `--awr-user AWR_REPORTER` means the password must be for `AWR_REPORTER`. `--awr-user ADMIN` means it must be the database password for `ADMIN`.
+
+`AWR_REPORTER` is an example name, not a built-in Oracle user. BALIO does not create an AWR reporting account or grant AWR privileges. Ask the database administrator which existing account and service to use. See [AWR account selection](#1-select-an-awr-reporting-account).
+
+### How password input works
+
+- If the selected password variable is absent, BALIO prompts for the password in an interactive terminal. Input is hidden.
+- For repeatable commands, enter the password with the Bash `read` examples below and export the variable. For unattended runs, inject it through your usual secret-management mechanism.
+- `--password-env`, `--schema-password-env` and `--awr-password-env` take **environment variable names**, never literal passwords.
+- BALIO does not automatically load a `.env` file. Variables must be exported in the shell that starts the CLI.
+- `BALIO_DSN` / `--dsn` contains a service alias or connection endpoint, without a username or password.
+
+All shell examples below use **Bash on the Linux client**. Replace example hosts, service aliases, account names, paths and tablespaces with your own values. Type passwords only at the hidden prompts.
+
+## Quick start
+
+### 1. Obtain or create a benchmark schema
+
+Use a dedicated benchmark schema in the target PDB. If the DBA has already supplied one, continue to [configure the workload connection](#2-configure-the-workload-connection).
+
+The schema needs `CREATE SESSION`, `CREATE TABLE`, `CREATE PROCEDURE`, and sufficient quota in an existing tablespace. Session statistics require the additional access described under [metrics and permissions](#metrics-and-permissions).
+
+To create a schema remotely, use an **existing authorized administrative account**. The following uses `ADMIN` and the `DATA` tablespace, as commonly used on Autonomous; substitute the DBA-approved account and tablespace for your deployment. For a wallet connection, configure the [Autonomous wallet](#autonomous-mtls-wallet) first and use its service alias as `BALIO_DSN`.
+
+```bash
+export BALIO_DSN='dbhost.example:1521/benchmark_pdb'
+
+# Existing Oracle administrative account's password.
+read -r -s -p 'Database password for ADMIN: ' BALIO_ADMIN_PASSWORD
+echo
+export BALIO_ADMIN_PASSWORD
+
+# Choose a password for the new Oracle benchmark user BALIO.
+read -r -s -p 'New database password for BALIO: ' BALIO_SCHEMA_PASSWORD
+echo
+export BALIO_SCHEMA_PASSWORD
+
+balio provision --user ADMIN --password-env BALIO_ADMIN_PASSWORD \
+  --schema BALIO --schema-password-env BALIO_SCHEMA_PASSWORD \
+  --tablespace DATA --quota 2G
+
+unset BALIO_ADMIN_PASSWORD BALIO_SCHEMA_PASSWORD
+```
+
+On self-managed databases, `USERS` is a common tablespace example. The `2G` quota above is for the small smoke dataset; choose a larger finite quota for a larger test.
+
+`provision` creates a new user; it does not reset an existing user's password or create an AWR account. Oracle DDL commits independently, so a partial failure lists what succeeded for the administrator to finish. The CLI does not support `SYSDBA` connections; do not use `SYS` or `sys as sysdba` in these examples.
+
+### 2. Configure the workload connection
 
 Choose a service/PDB endpoint reachable from the Linux host. A private endpoint needs routing and Oracle Net access from that host; BALIO does not create network paths or provision cloud infrastructure.
 
 ```bash
 export BALIO_DSN='dbhost.example:1521/benchmark_pdb'
-export BALIO_USER='BALIO'
-read -r -s -p 'Benchmark password: ' BALIO_PASSWORD; echo
+export BALIO_USER='BALIO'  # The Oracle schema that will own the benchmark objects.
+read -r -s -p 'Database password for BALIO: ' BALIO_PASSWORD
+echo
 export BALIO_PASSWORD
+
 balio doctor
 ```
 
-Passwords may also be entered interactively if the environment variable is absent. Never put a password into `--password-env`: that option takes the **name** of an environment variable. Use your normal secret injection mechanism for unattended execution. Do not embed credentials inside the DSN.
+Enter the existing `BALIO` user's database password at the prompt. If you just ran `provision`, enter the **same password you chose for `BALIO_SCHEMA_PASSWORD`**. Keep these workload credentials selected for `deploy`, `seed` and `run`.
+
+Alternatively, omit the password variable and let each command prompt:
+
+```bash
+unset BALIO_PASSWORD
+balio doctor --dsn 'dbhost.example:1521/benchmark_pdb' --user BALIO
+# Database password: <type the BALIO database password; input is hidden>
+```
+
+`--user` and `--dsn` override `BALIO_USER` and `BALIO_DSN` for that command.
+
+#### Autonomous mTLS wallet
 
 For Autonomous mTLS, use the service alias from its downloaded wallet and configure its Oracle Net files:
 
@@ -71,24 +161,12 @@ Use the wallet's required `sqlnet.ora`/wallet path configuration; some downloads
 
 The per-round-trip timeout is `--call-timeout-ms` (default 60000). Initial connection establishment is governed by Oracle Net connection/retry settings in the DSN or `tnsnames.ora`; configure those to avoid lengthy connection hangs.
 
-## Provision, deploy, seed
-
-Use a dedicated benchmark schema in the target PDB. The required baseline privileges are `CREATE SESSION`, `CREATE TABLE`, `CREATE PROCEDURE`, and sufficient quota in an existing tablespace. The deployment uses only BALIO-prefixed objects and refuses unrecognized collisions. There is no `DROP USER`, buffer-cache flush, SYSDBA dependency, hidden parameter change, or automatic destructive cleanup.
-
-If a DBA has already supplied the schema, skip `provision`. Otherwise connect with an account authorized to create users and grant the required privileges. For example, after securely setting `BALIO_ADMIN_PASSWORD` and `BALIO_SCHEMA_PASSWORD`:
-
-```bash
-balio provision --user ADMIN --password-env BALIO_ADMIN_PASSWORD \
-  --schema BALIO --schema-password-env BALIO_SCHEMA_PASSWORD \
-  --tablespace DATA --quota 2G
-```
-
-Use the actual administrative user and tablespace for the target (`DATA` is common on Autonomous; `USERS` is a typical self-managed example). Quota is explicit and finite. Provisioning creates a new user; it does not reset an existing user's password. Oracle DDL commits independently, so a partial provisioning failure lists what succeeded for the administrator to finish.
+### 3. Deploy, seed and run a smoke test
 
 The small dataset below is a **functional smoke test**, not a storage-capacity test:
 
 ```bash
-# BALIO_USER/BALIO_PASSWORD now identify the dedicated benchmark user.
+# Run as BALIO, using the workload credentials configured in step 2.
 balio deploy --payload-bytes 512
 balio seed --hot-rows 10000 --cold-rows 100000 --payload-bytes 512 --batch-rows 1000
 balio doctor
@@ -97,9 +175,11 @@ balio run --platform other --workers 2 --duration 15 --warmup 5 \
 balio report results/smoke
 ```
 
+Use a **new output directory for every run**; BALIO refuses to overwrite a previous result. Deployment uses BALIO-prefixed objects and refuses unrecognized collisions.
+
 Seeding uses conventional logged inserts and a transactionally updated progress marker. Re-run the identical seed command after interruption. A different dataset size requires a **new dedicated schema**; BALIO will not silently truncate or resize a populated dataset. Seeding cost includes client payload generation, network transfer, index maintenance, redo and undo. It is not included in workload measurements. Payloads are varied printable ASCII; no claim of perfect incompressibility is made.
 
-## Size for logical and physical pressure
+## Size the dataset
 
 Keep the total hot table/index working set comfortably within the effective database buffer-cache budget. For a physical-read test, provision a cold working set larger than the usable cache and run long enough to reach a stable observed read rate. A starting experiment might use several times the effective cache, but the correct size is measured, not universal. Shared cache, other workloads, RAC placement, Autonomous resource policy and storage caches change the result.
 
@@ -111,7 +191,17 @@ balio plan --platform exacs --hot-rows 1000000 --cold-rows 100000000 \
 
 That plan describes about **94.1 GiB of row payload**, before table/block overhead, primary-key indexes, undo, redo and headroom. After choosing quota and sizes for the actual database, use those values in a new schema's `seed` command. `dataset_info`/run results report allocated segment bytes when the database exposes them. The maximum row count per table is 2,147,483,646; choose payload size between 64 and 2000 bytes.
 
-## Run controlled comparisons
+## Workload profiles and controls
+
+| Control | Purpose | Default |
+| :--- | :--- | :--- |
+| `--profile logical` | Select the hot pool for every operation | — |
+| `--profile balanced` | Select the cold pool with 50% probability | Default profile |
+| `--profile physical` | Select the cold pool for every operation | — |
+| `--cold-pct PERCENT` | Set cold-pool selection probability; overrides the profile | From profile |
+| `--update-pct PERCENT` | Select updates instead of reads, independently of pool selection | `0` |
+| `--target-physical-pct PERCENT` | Adjust the cold mix toward a measured physical/logical ratio | Disabled |
+| `--workers COUNT` | Number of concurrent workload sessions | `4` |
 
 ```bash
 # Cache-focused read baseline.
@@ -146,38 +236,103 @@ The controller changes cold selection probability after each measured interval u
 
 For capacity curves, repeat the same seeded data/configuration at worker counts 1, 2, 4, 8, 16, etc.; repeat each point and retain raw files. Keep database/RU, service, shape, autoscaling, resource limits, client placement and concurrent load documented. This initial release uses one Linux driver host per run; multiple uncoordinated drivers are separate experiments and may contend on the same update ranges.
 
-## Concurrency and server infrastructure
+## Client concurrency
 
 `--workers 32` creates **32 concurrent workload sessions**, each with its own persistent Oracle connection and serial PL/SQL batches. The SQL, memory access, physical I/O, undo and redo execute on the Oracle server. The Linux host generates load and collects measurements; its local disks are not the benchmark target.
 
-Concurrency is essential: too few sessions can leave database CPUs and storage queues underused. Beyond saturation, adding sessions can increase waits and latency without increasing throughput. A managed service may also queue connected workers. Client CPU and network delay can limit how much work reaches the server, so the result now includes `client.measured_phase_cpu_seconds`, `client.cpu_percent_of_one_core`, and start-skew measurements. These are client measurements, not database-host utilization.
+Concurrency is essential: too few sessions can leave database CPUs and storage queues underused. Beyond saturation, adding sessions can increase waits and latency without increasing throughput. A managed service may also queue connected workers. Client CPU and network delay can limit how much work reaches the server, so results include `client.measured_phase_cpu_seconds`, `client.cpu_percent_of_one_core`, and start-skew measurements. These are client measurements, not database-host utilization.
 
 See [concurrency and a repeatable sweep](docs/concurrency.md) for an experiment at increasing worker counts and how to identify driver bottlenecks. BALIO does not yet coordinate multiple driver hosts or rotate worker-specific RAC services as SLOB can.
 
-## AWR reports downloaded to the client
+## AWR reports
 
-After configuring the benchmark connection and securely supplying `BALIO_AWR_PASSWORD` for an authorized reporting account:
+BALIO can take AWR snapshots immediately before and after the measured workload, then save **HTML and text reports on the Linux client**. AWR is optional and **off by default**.
+
+### 1. Select an AWR reporting account
+
+Keep `BALIO_USER` and `BALIO_PASSWORD` set to the dedicated workload schema. Use `--awr-user` to select a separate reporting account:
+
+| Deployment | Account to pass to `--awr-user` | Password to enter for `BALIO_AWR_PASSWORD` |
+| :--- | :--- | :--- |
+| Self-managed Oracle, Exadata, ExaCS, Exascale or a similar service | An existing DBA-approved account allowed to create snapshots and generate AWR reports; `AWR_REPORTER` below is an example | That reporting account's Oracle database password |
+| Autonomous Database | A DBA-approved account supported by the service; use `ADMIN` only where it is authorized and the required AWR APIs are available | The selected account's Oracle database password; if using `--awr-user ADMIN`, use the `ADMIN` password |
+
+The account needs permission to execute the requested `DBMS_WORKLOAD_REPOSITORY` operations and read the relevant snapshot and instance views. Report generation privileges alone may not permit manual snapshot creation. BALIO does not create this account, grant its permissions, or enable management packs. See the [AWR access requirements](docs/awr.md#access-and-entitlement) and [Oracle's Diagnostics Pack rules](https://docs.oracle.com/en/database/oracle/oracle-database/26/dblic/Licensing-Information.html).
+
+### 2. Enter the reporting password and run
+
+The following example assumes the DBA has supplied an account named **`AWR_REPORTER`**. Replace that username with the actual reporting account before running the command. Enter **that account's password** at the prompt:
 
 ```bash
+# Existing workload connection:
+# BALIO_DSN      = target service/PDB
+# BALIO_USER     = BALIO
+# BALIO_PASSWORD = password of the Oracle user BALIO
+
+read -r -s -p 'Database password for AWR_REPORTER: ' BALIO_AWR_PASSWORD
+echo
+export BALIO_AWR_PASSWORD
+
 balio run --platform exacs --workers 32 --cold-pct 70 \
   --update-pct 10 --warmup 60 --duration 300 \
   --awr snapshots --awr-format both --awr-scope instance \
   --awr-user AWR_REPORTER --awr-password-env BALIO_AWR_PASSWORD \
   --output results/exacs-w32
+
+unset BALIO_AWR_PASSWORD
 ```
 
-The lifecycle is: connect/preflight → warmup → starting AWR snapshot → measured workload → wait for every worker to stop → ending AWR snapshot → download reports. Snapshot creation and report generation are excluded from BALIO's measured workload timer. The wider AWR interval includes snapshot overhead, unrelated activity and database background processes.
+For an authorized Autonomous `ADMIN` reporting connection, use `--awr-user ADMIN` instead and enter the **ADMIN database password** into `BALIO_AWR_PASSWORD`. The workload still runs as `BALIO`.
 
-Reports are saved locally under `results/exacs-w32/awr/`, with separate `.html` and `.txt` files for participating instances. `--awr-scope global` requests a combined RAC report. DBID, container, participating instances, snapshot IDs/times, report paths and collection status are recorded in `results.json`. Report content is fetched through `DBMS_WORKLOAD_REPOSITORY` table functions over the existing Oracle client driver; SQL*Plus, SSH and a database-host filesystem download are not required.
+**Credential selection rules:**
 
-Use `--awr-dsn` when the reporting account needs a different service in the **same database**, such as CDB root for a 12.1 PDB workload. It inherits the workload's client mode/network configuration. Reporting identity is checked against workload identity; root reporting includes other containers. AWR privileges and entitlement must be available for the target deployment; the tool does not grant them or enable management packs. AWR is off by default, and baseline metrics remain usable without it. See [Oracle's Diagnostics Pack rules](https://docs.oracle.com/en/database/oracle/oracle-database/26/dblic/Licensing-Information.html).
+- With `--awr-user`, BALIO reads `BALIO_AWR_PASSWORD` by default. The explicit `--awr-password-env BALIO_AWR_PASSWORD` above documents that choice.
+- If that variable is absent, BALIO prompts with `AWR reporting password:` in an interactive terminal.
+- If both `--awr-user` and `--awr-password-env` are omitted, the reporting connection **reuses the workload username and password**. This works only when that user is also authorized for AWR.
+- Exporting `BALIO_AWR_PASSWORD` alone does not select an AWR account or override the workload password. There is no automatically read `BALIO_AWR_USER` variable.
 
-`--awr existing` is an explicitly partial diagnostic option: it uses existing common snapshots and cannot guarantee coverage of the run's end. It is never silently substituted for manual snapshots. Requested AWR failure or partial coverage makes the overall run return nonzero, while `workload_status` and measured results preserve whether the load itself completed. See the [AWR guide](docs/awr.md) for Autonomous/PDB restrictions, permissions and exact scope.
+### 3. Find the local reports
+
+Paths are relative to the directory where you start BALIO unless `--output` is absolute. The example above produces a directory shaped like this; angle-bracket fields represent database values:
+
+```text
+results/exacs-w32/
+├── results.json
+├── samples.jsonl
+└── awr/
+    ├── awr_<dbid>_instance_<number>_<begin_snap>_<end_snap>.html
+    └── awr_<dbid>_instance_<number>_<begin_snap>_<end_snap>.txt
+```
+
+Instance scope creates reports for each participating instance. Global scope creates a combined RAC report. The `awr` section of `results.json` records the report paths, DBID, container, participating instances, snapshot IDs/times and collection status.
+
+BALIO fetches report content through the Oracle driver using `DBMS_WORKLOAD_REPOSITORY` table functions. **SQL*Plus, SSH, a database-host file copy and an Oracle `DIRECTORY` object are not required.** No real database reports are bundled with the project.
+
+### AWR options and snapshot boundaries
+
+| Option | Behavior |
+| :--- | :--- |
+| `--awr off` | Default. No AWR collection. |
+| `--awr snapshots` | Create a snapshot after warmup and another after all workload workers stop; export reports between them. |
+| `--awr existing` | Use existing snapshots. Coverage is explicitly partial; this is not a substitute for a fully bracketed run. |
+| `--awr-format both` | Save HTML and text. Alternatives: `html`, `text`. |
+| `--awr-scope instance` | Default. Report separately for each participating database instance. |
+| `--awr-scope global` | Request a combined RAC report across participating instances. |
+| `--awr-dsn SERVICE` | Use another reporting service in the **same database**, such as its CDB root. |
+| `--awr-timeout-ms 180000` | Default timeout per reporting connection round trip. |
+
+The lifecycle is **preflight → warmup → beginning snapshot → measured workload → stop all workers → ending snapshot → local report export**. Snapshot creation and report generation are excluded from BALIO's measured workload timer. The broader AWR interval includes snapshot overhead, other sessions and database background activity.
+
+`--awr-dsn` changes only the reporting endpoint. It inherits the selected reporting credentials and the workload's client mode/network configuration. For a **12.1 PDB** workload, use an authorized reporting connection to the matching CDB root; root reports include other containers. PDB-local AWR is available from 12.2, subject to privileges and service restrictions.
+
+Requested AWR failure or partial coverage makes the overall command return **nonzero**, even if the workload completed. Measured results remain available, and `workload_status` distinguishes load completion from AWR collection status. With `--awr existing`, no newer snapshot means failure; a newer available snapshot still produces a partial report because it cannot guarantee coverage through workload stop. There is no silent fallback.
+
+See the [complete AWR guide](docs/awr.md) for permissions, RAC/PDB validation, managed-service restrictions and troubleshooting.
 
 ## Metrics and permissions
 
 | Report field | Meaning |
-|---|---|
+| :--- | :--- |
 | `operations_per_s` | Completed row operations per measured worker-window second. |
 | `logical_block_accesses_per_s` | Delta of `session logical reads` per second; the usual logical-I/O rate. |
 | `physical_read_requests_per_s` | Delta of `physical read IO requests` per second from worker sessions. |
@@ -202,7 +357,7 @@ GRANT SELECT ON SYS.V_$STATNAME TO BALIO;
 
 Database physical reads may be served by Exadata flash, PMEM/XRMEM or another cache. Session counters do not identify the underlying device's IOPS. Asynchronous DBWR/LGWR writes cannot be attributed to the workload by summing the foreground sessions' write counters. Use optional AWR, the [system telemetry query](balio/sql/system_telemetry.sql), and authorized cloud/Exadata/storage telemetry for a broader infrastructure view; instance-wide observations include other activity. The default workload does not invoke AWR or ASH. AWR is explicitly opt-in and requires the target's applicable entitlement and privileges. See [Oracle counter definitions](https://docs.oracle.com/en/database/oracle/oracle-database/26/refrn/statistics-descriptions-2.html).
 
-## Autonomous, RAC and release caveats
+## Autonomous, RAC and release considerations
 
 For Autonomous, select a transaction/serial service such as an appropriate `TP` or `LOW` alias and record the exact choice. Resource Manager, session limits, queuing and autoscaling affect measurements. Warehouse/Lakehouse configurations may ignore optimizer hints. The workload asks for indexed serial reads and disables query result caching via hints, but inspect execution plans where privileges permit before calling a run a single-block I/O baseline.
 
@@ -210,7 +365,7 @@ On RAC, a service can spread workers across instances. Results include per-worke
 
 The 26ai product name can correspond to a **23.26.x** numeric build. BALIO records the reported version without requiring a nonexistent major-version 26. A service's supported release range is independent of this tool's SQL compatibility target.
 
-## Verification and results
+## Results and verification
 
 ```bash
 python -m unittest discover -s tests -v
@@ -223,3 +378,14 @@ Tests cover pure metric definitions, feedback behavior, failure handling, concur
 Each run directory contains `results.json`, append-only `samples.jsonl`, and an `awr/` directory when reporting is enabled and preflight succeeds. Files are created with owner-only permissions. Existing run output is never overwritten. An interrupted/failed run retains completed intervals and records the incomplete status; after a successful starting snapshot, the collector attempts an ending diagnostic report even if the workload failed. `balio report PATH` renders the final JSON as text; `--json` prints the complete document. No result files from real Oracle runs are bundled with this project.
 
 When finished, let the DBA retire the dedicated benchmark schema using the normal change process. BALIO deliberately has no automatic destructive cleanup command.
+
+## Documentation
+
+| Guide | Contents |
+| :--- | :--- |
+| [AWR reports](docs/awr.md) | Reporting credentials, snapshots, local exports, privileges and container scope |
+| [Concurrency](docs/concurrency.md) | Worker-count sweeps, saturation and client bottlenecks |
+| [Measurement methodology](docs/methodology.md) | Workload design, feedback controls and interpretation of metrics |
+| [Deployment catalogue](docs/deployments.md) | OCI, multicloud, on-premises and other Oracle deployment choices |
+| [SLOB comparison](docs/slob-comparison.md) | Reviewed SLOB capabilities, BALIO differences and limitations |
+| [Validation status](docs/validation.md) | Offline test coverage and live database acceptance checklist |
